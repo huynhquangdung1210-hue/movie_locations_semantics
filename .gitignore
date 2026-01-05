@@ -1,0 +1,9 @@
+# Outputs and caches
+data_out/
+__pycache__/
+*.sqlite
+movies_city_*.csv
+*.pyc
+
+# Virtual environments
+.venv/
