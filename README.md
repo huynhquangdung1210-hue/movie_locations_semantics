@@ -1,41 +1,75 @@
 # IMDb Filming Locations Pipeline
 
-Build a dataset of IMDb movies with filming locations (via RapidAPI) plus simple location features.
+Build a dataset of IMDb titles with filming locations from the RapidAPI IMDb endpoint, then compute simple location features. Optional geocoding fills missing coordinates for non-fictional locations.
+
+## Requirements
+
+- Python 3.10+
+- `pip`
 
 ## Setup
 
-- Python 3.10+ and `pip`.
-- Install deps: `pip install -r requirements.txt`
-- Set your RapidAPI key (required):
-  - PowerShell: `$env:IMDB_RAPIDAPI_KEY = 'your-rapidapi-key'`
-  - Persist (optional): `setx IMDB_RAPIDAPI_KEY "your-rapidapi-key"` (restart shell)
-- Optional: enable geocoding by toggling `Config.enable_geocoding` (uses Nominatim, cached in SQLite).
+```bash
+pip install -r requirements.txt
+```
 
-## Key Files
+Set your RapidAPI key (required):
 
-- `pipeline.py` – orchestrates the end-to-end run.
-- `config.py` – runtime settings (RapidAPI host/batching/cache dirs, UA, output paths).
-- `filmlocations.py` – fetches filming locations from RapidAPI IMDb endpoint with retry + on-disk cache.
-- `storage.py` – SQLite caches for RapidAPI payloads (table `rapidapi_locations`) and geocoding.
-- `location_classify.py` – labels locations as real/fictional/unknown.
-- `geocode.py` – Nominatim geocoder (used only if enabled).
-- `features.py` – aggregates title-level features from location data.
-- `imdb_datasets.py` – downloads and loads IMDb TSVs.
+PowerShell:
+```powershell
+$env:IMDB_RAPIDAPI_KEY = 'your-rapidapi-key'
+```
 
-## Running the Pipeline
+Persist (optional):
+```powershell
+setx IMDB_RAPIDAPI_KEY "your-rapidapi-key"
+```
+
+## Configuration
+
+Runtime settings live in `config.py`:
+
+- RapidAPI host, batch size, and sleep between calls
+- Cache locations for RapidAPI payloads and geocoding
+- Output directory (`data_out/` by default)
+- Toggle geocoding with `Config.enable_geocoding`
+
+## Running
 
 ```bash
 python pipeline.py
 ```
 
-Outputs (written to `data_out/` by default):
-- `movies_locations_long.parquet` – long form movie+location rows.
-- `movies_locations_title_features.parquet` – wide title-level features.
-- `sample_long.csv`, `sample_wide.csv` – small CSV samples.
+## Outputs
+
+Written to `data_out/` by default:
+
+- `movies_locations_long.parquet` - long-form movie + location rows
+- `movies_locations_title_features.parquet` - title-level features
+- `sample_long.csv` and `sample_wide.csv` - small CSV samples
+
+## Data Sources
+
+- IMDb bulk TSVs are downloaded via `imdb_datasets.py` (official datasets)
+- Filming locations are fetched from RapidAPI:
+  `https://imdb-com.p.rapidapi.com/title/get-filming-locations?tconst=...`
+
+## Caching
+
+- RapidAPI payloads can be cached to disk and to SQLite
+- Geocoding results are cached in SQLite to reduce calls
+
+## Repository Layout
+
+- `pipeline.py` - orchestrates the end-to-end run
+- `filmlocations.py` - RapidAPI client with retries and caching
+- `storage.py` - SQLite cache helpers
+- `location_classify.py` - simple real/fictional/unknown labeling
+- `geocode.py` - Nominatim geocoder (optional)
+- `features.py` - title-level feature aggregation
+- `imdb_datasets.py` - downloads and loads IMDb TSVs
 
 ## Notes
 
-- RapidAPI endpoint: `https://imdb-com.p.rapidapi.com/title/get-filming-locations?tconst=...`
-- Only filming locations are fetched (no featured locations).
-- Coordinates are generally absent from the API; optional geocoding can fill gaps for non-fictional labels.
-- Caching: RapidAPI payloads can also be cached to disk via `filmlocations.py` (see `Config.rapidapi_cache_dir`) and to SQLite (`storage.py`).
+- The RapidAPI endpoint returns filming locations only (not featured locations).
+- Coordinates are often missing; geocoding is optional and skipped for fictional locations.
